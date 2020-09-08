@@ -4,11 +4,12 @@ import { useToast, Box, Alert, AlertIcon } from "@chakra-ui/core";
 import "moment/locale/es";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import MateriasDrawer from "./MateriasDrawer";
-import { data } from "../data/horarios";
+// import { DataContext } from "../Context";
+import { initialData } from "../useData";
 
 const Body = () => {
   const toast = useToast();
-  const [events, setEvents] = React.useState([]);
+  const [data, setData] = React.useState(initialData);
 
   React.useEffect(() => {
     toast({
@@ -21,16 +22,12 @@ const Body = () => {
         </Alert>
       ),
     });
-    toast({
-      position: "bottom-right",
-      render: () => <MateriasDrawer setEvents={setEvents} />,
-      duration: null,
-    });
   }, [toast]);
 
   return (
     <Box flexGrow={1}>
-      <Calendar events={events} />
+      <MateriasDrawer data={data} />
+      <Calendar events={[]} />
     </Box>
   );
 };

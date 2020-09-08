@@ -8,128 +8,104 @@ import {
   useDisclosure,
   IconButton,
   Link,
+  useToast,
   Box,
   Icon,
 } from "@chakra-ui/core";
 import SelectCarreras from "./SelectCarreras";
 import SelectMateria from "./SelectMateria";
-import { data } from "../data/horarios";
+import SelectCurso from "./SelectCurso";
 import { randomColor } from "../utils/colorHelper";
+import { DataContext } from "../Context";
 
 const MateriasDrawer = (props) => {
+  const { data } = props;
+  const [carreras, setCarreras] = React.useState(data.carreras);
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [carrerasSeleccionadas, setCarrerasSeleccionadas] = React.useState([]);
-  const [cursosSeleccionados, setCursosSeleccionados] = React.useState([]);
-  const [materiasCount, setMateriasCount] = React.useState(1);
-  const [materiasVisibles, setMateriasVisibles] = React.useState([]);
+  const toast = useToast();
 
-  const sortyByCodigo = (a, b) => {
-    return a.codigo > b.codigo;
+  const toggleCarrera = (carrera) => {
+    setCarreras(
+      carreras.map((c) => {
+        if (c === carrera) {
+          return { ...c, show: !c.show };
+        }
+        return c;
+      })
+    );
   };
 
-  React.useEffect(() => {
-    const materiasAMostrarConDups = carrerasSeleccionadas?.reduce(
-      (arr, c) => arr.concat(...c.materias),
-      []
-    );
-    const materiasAMostrar = new Set(materiasAMostrarConDups);
+  // const materiasNotShown = data.materias.filter(
+  //   (_, index) => !materiasAMostrar.has(index)
+  // );
+  // materiasShown.forEach((m) => (m.show = true));
+  // materiasNotShown.forEach((m) => (m.show = false));
+  // data.materias = [...materiasShown, ...materiasNotShown];
+  // setData(data);
+  const materiasAMostrar = new Set(
+    carreras
+      .filter((c) => c.show)
+      .reduce((arr, c) => arr.concat(...c.materias), [])
+  );
+  const materiasShown = data.materias.filter((_, index) =>
+    materiasAMostrar.has(index)
+  );
+  console.log(materiasShown.length);
 
-    const materias = materiasAMostrar.size
-      ? data.materias.filter((m) => materiasAMostrar.has(m.index))
-      : data.materias;
-    setMateriasVisibles([...materias].sort(sortyByCodigo));
-  }, [carrerasSeleccionadas]);
+  const AddButton = () => (
+    <IconButton
+      m={10}
+      onClick={onOpen}
+      variantColor="primary"
+      aria-label="Agregar Materia"
+      icon="add"
+      color="background"
+      borderColor="background"
+      fontFamily="general"
+    />
+  );
+
+  // appState = {
+  //   selectedCourses: [],
+  //   availableCourses: [
+  //     // ...
+  //   ],
+  // };
 
   React.useEffect(() => {
-    const events = cursosSeleccionados.map((curso) => {
-      curso.color = curso.color || randomColor(10);
-      return curso.clases.map((c) => {
-        return {
-          // +10 only for test data. Remove once it hits prod!!
-          start: new Date(2018, 0, c.dia, c.inicio + 10),
-          end: new Date(2018, 0, c.dia, c.fin + 10),
-          title: curso.docentes,
-          color: curso.color,
-        };
-      });
+    toast({
+      position: "bottom-right",
+      render: () => <AddButton />,
+      duration: null,
     });
-    props.setEvents(events.flat());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cursosSeleccionados]);
-
-  const seleccionarCurso = (curso) => {
-    if (cursosSeleccionados.includes(curso)) {
-      const cursosWithoutCurso = cursosSeleccionados.filter(
-        (el) => el !== curso
-      );
-      setCursosSeleccionados([...cursosWithoutCurso]);
-    } else {
-      setCursosSeleccionados([...cursosSeleccionados, curso]);
-    }
-  };
-
-  const removerMateriaDeCalendario = (materia) => {
-    const cursos = cursosSeleccionados.filter(
-      (c) => !materia.cursos.includes(c)
-    );
-    setCursosSeleccionados([...cursos]);
-  };
-
-  const agregarSelectMateria = () => {
-    setMateriasCount(materiasCount + 1);
-  };
+  }, [toast]);
 
   return (
-    <>
-      {!isOpen && (
-        <IconButton
-          m={10}
-          onClick={onOpen}
-          variantColor="primary"
-          aria-label="Agregar Materia"
-          icon="add"
-          color="background"
-          borderColor="background"
-          fontFamily="general"
-        />
-      )}
-
-      <Drawer isOpen={isOpen} placement="right" onClose={onClose}>
-        <DrawerOverlay />
-        <DrawerContent bg="background">
-          <DrawerBody>
-            <Box textAlign={["right"]}>
-              <SelectCarreras
-                carreras={data.carreras}
-                carrerasSeleccionadas={carrerasSeleccionadas}
-                setCarrerasSeleccionadas={setCarrerasSeleccionadas}
-              />
-
-              {new Array(materiasCount).fill().map(() => {
-                return (
-                  <SelectMateria
-                    removerMateriaDeCalendario={removerMateriaDeCalendario}
-                    materiasVisibles={materiasVisibles}
-                    cursosSeleccionados={cursosSeleccionados}
-                    agregarSelectMateria={agregarSelectMateria}
-                    seleccionarCurso={seleccionarCurso}
-                  />
-                );
+    <Drawer isOpen={isOpen} placement="right" onClose={onClose}>
+      <DrawerOverlay />
+      <DrawerContent bg="background">
+        <DrawerBody>
+          <Box textAlign={["right"]}>
+            <SelectCarreras carreras={carreras} toggleCarrera={toggleCarrera} />
+            {data.materias
+              .filter((m) => m.visible)
+              .map((m) => {
+                return <SelectCurso materia={m} />;
               })}
-            </Box>
-          </DrawerBody>
-          <DrawerFooter>
-            <Link
-              isExternal
-              color="primary.500"
-              href="https://github.com/fdelmazo/FIUBA-Plan"
-            >
-              <Icon color="primary" name="github" />
-            </Link>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    </>
+            <SelectMateria materias={materiasShown} />
+          </Box>
+        </DrawerBody>
+        <DrawerFooter>
+          <Link
+            isExternal
+            color="primary.500"
+            href="https://github.com/fdelmazo/FIUBA-Plan"
+          >
+            <Icon color="primary" name="github" />
+          </Link>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   );
 };
 
